@@ -13,6 +13,8 @@ import serial
 
 load_dotenv()
 ngrok_link = ""
+logs_receiving = False
+log_data = ""
 
 ser = None
 
@@ -109,10 +111,21 @@ def set_serial_object(serial_object):
     ser = serial_object
 
 def read_serial_data(data):
+    global logs_receiving, log_data
     try:
         global ngrok_link
         if "{hay orange-pi!" in data:
-            if "send time" in data or "update time" in data or "send updated time" in data:
+            if "[#SaveIt]:" in data or logs_receiving:
+                logs_receiving = True
+                log_data += data
+                if "_<end>_" in data:
+                    logs_receiving = False
+                    with open('logs.txt', 'a') as file:
+                        file.write(log_data)
+                        file.flush()  # Ensure the data is written to the file immediately
+                        file.close()  # Close the file explicitly
+                        log_data = ""
+            elif "send time" in data or "update time" in data or "send updated time" in data:
                 update_time()
             elif "send ip" in data or "update ip" in data or "my ip" in data:
                 ip = requests.get('https://api.ipify.org').text
